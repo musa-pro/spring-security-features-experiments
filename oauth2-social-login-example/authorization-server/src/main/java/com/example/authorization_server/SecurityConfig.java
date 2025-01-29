@@ -385,22 +385,24 @@ public class SecurityConfig {
     @Bean
     public InMemoryUserDetailsManager userDetailsService() {
         UserDetails user = User.builder()
-                .username("user")
-                .password(passwordEncoder().encode("password"))
+                .username("user1")
+                .password("{noop}password")
+//                .password(passwordEncoder().encode("password"))
                 .roles("USER")
                 .build();
 
         UserDetails admin = User.builder()
-                .username("admin")
-                .password(passwordEncoder().encode("admin"))
+                .username("admin1")
+//                .password(passwordEncoder().encode("admin"))
+                .password("{noop}admin")
                 .roles("ADMIN", "USER")
                 .build();
 
         return new InMemoryUserDetailsManager(user, admin);
     }
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+//    @Bean
+//    public PasswordEncoder passwordEncoder() {
+//        return new BCryptPasswordEncoder();
+//    }
 }

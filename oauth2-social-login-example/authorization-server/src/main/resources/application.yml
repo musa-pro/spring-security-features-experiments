@@ -9,9 +9,11 @@ spring:
           public-client:
             registration:
               client-id: "public-client"
-#              client-secret: "secret"
+              client-secret: "{noop}secret"
               client-authentication-methods:
-                - "none"
+#                - "none"
+                - "client_secret_basic"
+#                - "client_secret_post"
               authorization-grant-types:
                 - "authorization_code"
               redirect-uris:
@@ -20,11 +22,11 @@ spring:
               scopes:
                 - "openid"
                 - "profile"
-#                - "read"
-#                - "write"
+                - "read"
+                - "write"
 #                - "email"
-            require-authorization-consent: true
-            require-proof-key: true
+#            require-authorization-consent: true
+#            require-proof-key: true
 #      client:
 #        registration:
 #          google:
