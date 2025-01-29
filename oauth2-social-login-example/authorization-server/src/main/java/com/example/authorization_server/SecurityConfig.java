@@ -259,39 +259,6 @@ public class SecurityConfig {
 //        return source;
 //    }
 
-//    @Bean
-//    public RegisteredClientRepository registeredClientRepository() {
-//        List<RegisteredClient> registeredClients = new ArrayList<>();
-//        RegisteredClient frontendClient = RegisteredClient.withId(UUID.randomUUID().toString())
-//                .clientId("client-app")
-//                .clientSecret("{noop}secret")
-//                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
-//                .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
-////                .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
-//                .redirectUri("http://localhost:3000/callback")
-////                .scope(OidcScopes.OPENID)
-//                .scope("read")
-//                .scope("write")
-////                .clientSettings(ClientSettings.builder()
-////                        .requireProofKey(true)  // Enable PKCE
-////                        .requireAuthorizationConsent(true)
-////                        .build())
-//                .build();
-//
-////        RegisteredClient backendClient = RegisteredClient.withId(UUID.randomUUID().toString())
-////                .clientId("oauth2-test-client")
-////                .clientSecret(passwordEncoder().encode("client-secret"))
-////                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
-////                .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
-////                .scope("read")
-////                .scope("write")
-////                .build();
-//
-//        registeredClients.add(frontendClient);
-////        registeredClients.add(backendClient);
-//
-//        return new InMemoryRegisteredClientRepository(registeredClients);
-//    }
 
 //    @Bean
 //    public PasswordEncoder passwordEncoder(){
@@ -399,6 +366,43 @@ public class SecurityConfig {
                 .build();
 
         return new InMemoryUserDetailsManager(user, admin);
+    }
+
+
+    @Bean
+    public RegisteredClientRepository registeredClientRepository() {
+        List<RegisteredClient> registeredClients = new ArrayList<>();
+        RegisteredClient frontendClient = RegisteredClient.withId(UUID.randomUUID().toString())
+                .clientId("public-client")
+                .clientSecret("{noop}secret")
+                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
+                .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+//                .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
+                .redirectUri("http://localhost:3000/callback")
+//                .scope(OidcScopes.OPENID)
+                .scope("read")
+                .scope("write")
+                .scope("profile")
+                .scope("openid")
+//                .clientSettings(ClientSettings.builder()
+//                        .requireProofKey(true)  // Enable PKCE
+//                        .requireAuthorizationConsent(true)
+//                        .build())
+                .build();
+
+        RegisteredClient backendClient = RegisteredClient.withId(UUID.randomUUID().toString())
+                .clientId("oauth2-credential-flow-client")
+                .clientSecret("{noop}flow-secret")
+                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
+                .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
+                .scope("read")
+                .scope("write")
+                .build();
+
+        registeredClients.add(frontendClient);
+        registeredClients.add(backendClient);
+
+        return new InMemoryRegisteredClientRepository(registeredClients);
     }
 
 //    @Bean

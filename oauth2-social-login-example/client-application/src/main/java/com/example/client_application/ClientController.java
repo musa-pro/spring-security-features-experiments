@@ -93,4 +93,37 @@ public class ClientController {
             return ResponseEntity.ok(null);
         }
     }
+
+
+    @GetMapping("/client-credential-flow")
+    public ResponseEntity<String> clientCredentialAccessToken(){
+
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBasicAuth("oauth2-credential-flow-client", "flow-secret");
+            headers.setContentType(MediaType.valueOf(MULTIPART_FORM_DATA_VALUE));
+
+            MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+            formData.add("grant_type", "client_credentials");
+//            formData.add("code", authorizationCode);
+//            formData.add("redirect_uri", "http://localhost:3000/callback");
+//            body.add("state", state);
+
+            try{
+                ResponseEntity<String> response = restClient.post()
+                        .uri("http://localhost:8080/oauth2/token")
+                        .headers(h -> {
+                            h.addAll(headers);
+                        })
+                        .body(formData)
+                        .retrieve()
+                        .toEntity(String.class);
+                return ResponseEntity.ok(response.getBody());
+
+            }catch (Exception e){
+                e.printStackTrace();
+                return ResponseEntity.ok(null);
+            }
+
+    }
 }
