@@ -314,8 +314,8 @@ public class SecurityConfig {
                     // authorization endpoint
                     .exceptionHandling((exceptions) -> exceptions
                             .defaultAuthenticationEntryPointFor(
-                                    new LoginUrlAuthenticationEntryPoint("/login"),
-                                    new MediaTypeRequestMatcher(MediaType.TEXT_HTML)
+                                new LoginUrlAuthenticationEntryPoint("/oauth2/authorization/google"),
+                                new MediaTypeRequestMatcher(MediaType.TEXT_HTML)
                             )
                     );
 
@@ -332,7 +332,7 @@ public class SecurityConfig {
                     )
                     // Form login handles the redirect to the login page from the
                     // authorization server filter chain
-                    .formLogin(Customizer.withDefaults());
+                    .oauth2Login(Customizer.withDefaults());
 
             return http.cors(Customizer.withDefaults()).build();
         }
@@ -349,24 +349,24 @@ public class SecurityConfig {
             return source;
         }
 
-    @Bean
-    public InMemoryUserDetailsManager userDetailsService() {
-        UserDetails user = User.builder()
-                .username("user1")
-                .password("{noop}password")
-//                .password(passwordEncoder().encode("password"))
-                .roles("USER")
-                .build();
-
-        UserDetails admin = User.builder()
-                .username("admin1")
-//                .password(passwordEncoder().encode("admin"))
-                .password("{noop}admin")
-                .roles("ADMIN", "USER")
-                .build();
-
-        return new InMemoryUserDetailsManager(user, admin);
-    }
+//    @Bean
+//    public InMemoryUserDetailsManager userDetailsService() {
+//        UserDetails user = User.builder()
+//                .username("user1")
+//                .password("{noop}password")
+////                .password(passwordEncoder().encode("password"))
+//                .roles("USER")
+//                .build();
+//
+//        UserDetails admin = User.builder()
+//                .username("admin1")
+////                .password(passwordEncoder().encode("admin"))
+//                .password("{noop}admin")
+//                .roles("ADMIN", "USER")
+//                .build();
+//
+//        return new InMemoryUserDetailsManager(user, admin);
+//    }
 
 
     @Bean
