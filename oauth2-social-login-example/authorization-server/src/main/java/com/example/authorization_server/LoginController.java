@@ -19,4 +19,10 @@ public class LoginController {
             @AuthenticationPrincipal OidcUser principal) {
         return principal;
     }
+
+    @GetMapping("/new-client")
+    public OAuth2ClientCredentialsGenerator.ClientCredentials createClient() {
+        return new OAuth2ClientCredentialsGenerator().generateCredentials();
+    }
+
 }

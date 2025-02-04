@@ -1,3 +1,6 @@
+auth0:
+  base-url: ${AUTH0_BASE_URL}
+
 spring:
   application:
     name: authorization-server
@@ -15,7 +18,27 @@ spring:
               - openid
               - profile
               - email
-
+          auth0:
+            provider: auth0
+            client-id: ${AUTH0_CLIENT_ID}
+            client-secret: ${AUTH0_CLIENT_SECRET}
+            client-name: "AUTH0"
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            audience: ${AUTH0_AUDIENCE}
+            scope:
+              - openid
+              - profile
+              - email
+#              - offline_access
+#              - admin
+        provider:
+          auth0:
+            authorization-uri: ${auth0.base-url}authorize?audience=${AUTH0_AUDIENCE}
+            token-uri: ${auth0.base-url}oauth/token
+            issuer-uri: ${auth0.base-url}
+            jwk-set-uri: ${auth0.base-url}.well-known/jwks.json
+            user-name-attribute: "email"
 server:
   port: 8080
 

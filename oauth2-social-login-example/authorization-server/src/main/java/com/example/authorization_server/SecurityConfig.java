@@ -13,19 +13,38 @@ import org.springframework.http.MediaType;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.authority.mapping.GrantedAuthoritiesMapper;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.client.registration.ClientRegistration;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.registration.InMemoryClientRegistrationRepository;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
+import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
+import org.springframework.security.oauth2.core.oidc.IdTokenClaimNames;
+import org.springframework.security.oauth2.core.oidc.OidcIdToken;
 import org.springframework.security.oauth2.core.oidc.OidcScopes;
+import org.springframework.security.oauth2.core.oidc.OidcUserInfo;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
+import org.springframework.security.oauth2.core.oidc.user.OidcUserAuthority;
+import org.springframework.security.oauth2.core.user.OAuth2UserAuthority;
+import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 //import org.springframework.security.oauth2.server.authorization.client.InMemoryRegisteredClientRepository;
 //import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 //import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 //import org.springframework.security.oauth2.server.authorization.config.annotation.web.configuration.OAuth2AuthorizationServerConfiguration;
 //import org.springframework.security.oauth2.server.authorization.config.annotation.web.configurers.OAuth2AuthorizationServerConfigurer;
+import org.springframework.security.oauth2.server.authorization.OAuth2TokenType;
+import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationGrantAuthenticationToken;
+import org.springframework.security.oauth2.server.authorization.authentication.OAuth2ClientAuthenticationToken;
 import org.springframework.security.oauth2.server.authorization.client.InMemoryRegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
@@ -33,9 +52,15 @@ import org.springframework.security.oauth2.server.authorization.config.annotatio
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configurers.OAuth2AuthorizationServerConfigurer;
 import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
 import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
+import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
+import org.springframework.security.oauth2.server.authorization.token.JwtEncodingContext;
+import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenClaimsContext;
+import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenClaimsSet;
+import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenCustomizer;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -45,82 +70,14 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.time.Duration;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
-//    // enable OAuth 2.0 login through httpSecurity.oauth2Login()
-//    @Bean
-//    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-//        http
-//                .authorizeHttpRequests(authorize -> authorize
-//                        .anyRequest().authenticated()
-//                )
-//                .oauth2Login(withDefaults());
-//        return http.build();
-//    }
-
-//    @Bean
-//    @Order(1)
-//    public SecurityFilterChain authorizationServerSecurityFilterChain(HttpSecurity http) throws Exception {
-////        OAuth2AuthorizationServerConfiguration.applyDefaultSecurity(http);
-//
-//        http.getConfigurer(OAuth2AuthorizationServerConfigurer.class)
-//                .oidc(Customizer.withDefaults());
-//
-//        http.oauth2Login(oauth2Login ->
-//                oauth2Login.loginPage("/login")
-//        );
-//
-//        return http.build();
-//    }
-
-//    @Bean
-//    @Order(2)
-//    public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
-//        http
-//                .authorizeHttpRequests(authorize ->
-//                        authorize
-//                                .requestMatchers("/login").permitAll()
-//                                .anyRequest().authenticated()
-//                )
-//                .oauth2Login(oauth2Login ->
-//                        oauth2Login
-//                                .loginPage("/login")
-//                );
-//
-//        return http.build();
-//    }
-
-//    @Bean
-////    @Order(2)
-//    public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
-//        http
-//                .authorizeHttpRequests(authorize ->
-//                        authorize.anyRequest().authenticated()
-//                )
-//                .oauth2Login(oauth2 -> oauth2
-//                        .loginPage("/oauth2/authorization/google")
-//                );
-//        return http.build();
-//    }
-
-//    @Bean
-//    public RegisteredClientRepository registeredClientRepository() {
-//        RegisteredClient registeredClient = RegisteredClient.withId(UUID.randomUUID().toString())
-//                .clientId("oauth2-test-client")
-//                .clientSecret(passwordEncoder().encode("client-secret"))
-//                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
-//                .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
-//                .scope("read")
-//                .scope("write")
-//                .build();
-//        return new InMemoryRegisteredClientRepository(registeredClient);
-//    }
 
 //    @Bean
 //    public PasswordEncoder passwordEncoder(){
@@ -177,88 +134,6 @@ public class SecurityConfig {
 
 
 
-    //  browse to following
-    //  http://localhost:8080/oauth2/authorize?response_type=code&client_id=client-app&redirect_uri=http://localhost:3000/callback&scope=read&state=random123
-    //  http://localhost:8080/oauth2/authorize?response_type=code&client_id=client-app&redirect_uri=http://localhost:3000/callback&code_challenge=something&code_challenge_method=S256&scope=openid read
-//
-//    @Bean
-//    @Order(2)
-//    public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
-//        return http
-//                .authorizeHttpRequests(authorize -> authorize
-//                        .requestMatchers("/error", "/login", "/oauth2/authorization/**").permitAll()
-//                        .anyRequest().authenticated()
-//                )
-//                .csrf(csrf -> csrf.ignoringRequestMatchers("/token"))
-//                .oauth2Login(oauth2 -> oauth2
-//                        .loginPage("/oauth2/authorization/google")
-//                        .successHandler((request, response, authentication) ->
-//                        {
-//                            response.sendRedirect("/");
-//                        })
-//                        .defaultSuccessUrl("/", true)
-//                )
-//                .build();
-//    }
-//
-//
-//    @Bean
-//    @Order(1)
-//    public SecurityFilterChain authorizationServerSecurityFilterChain(HttpSecurity http)
-//            throws Exception {
-//        OAuth2AuthorizationServerConfigurer authorizationServerConfigurer =
-//                OAuth2AuthorizationServerConfigurer.authorizationServer();
-//
-//        http
-//                .securityMatcher(authorizationServerConfigurer.getEndpointsMatcher())
-//                .with(authorizationServerConfigurer, (authorizationServer) ->
-//                        authorizationServer
-//                                .oidc(Customizer.withDefaults())	// Enable OpenID Connect 1.0
-//                )
-//                .authorizeHttpRequests((authorize) ->
-//                        authorize
-//                                .anyRequest().authenticated()
-//                )
-//                // Redirect to the login page when not authenticated from the
-//                // authorization endpoint
-//                .exceptionHandling((exceptions) -> exceptions
-//                        .defaultAuthenticationEntryPointFor(
-////                                new LoginUrlAuthenticationEntryPoint(""),
-//                                new LoginUrlAuthenticationEntryPoint("/oauth2/authorization/google"),
-//                                new MediaTypeRequestMatcher(MediaType.ALL)
-//                        )
-//                );
-//
-//        return http.cors(Customizer.withDefaults()).build();
-//    }
-
-//    @Bean
-//    @Order(2)
-//    public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http)
-//            throws Exception {
-//        http
-//                .authorizeHttpRequests((authorize) -> authorize
-//                        .anyRequest().authenticated()
-//                )
-//                // Form login handles the redirect to the login page from the
-//                // authorization server filter chain
-//                .formLogin(Customizer.withDefaults());
-//
-//        return http.cors(Customizer.withDefaults()).build();
-//    }
-
-//    @Bean
-//    public CorsConfigurationSource corsConfigurationSource() {
-//        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-//        CorsConfiguration config = new CorsConfiguration();
-//        config.addAllowedHeader("*");
-//        config.addAllowedMethod("*");
-//        config.addAllowedOrigin("http://localhost:3000");
-//        config.setAllowCredentials(true);
-//        source.registerCorsConfiguration("/**", config);
-//        return source;
-//    }
-
 
 //    @Bean
 //    public PasswordEncoder passwordEncoder(){
@@ -313,10 +188,11 @@ public class SecurityConfig {
                     // Redirect to the login page when not authenticated from the
                     // authorization endpoint
                     .exceptionHandling((exceptions) -> exceptions
-                            .defaultAuthenticationEntryPointFor(
-                                new LoginUrlAuthenticationEntryPoint("/oauth2/authorization/google"),
-                                new MediaTypeRequestMatcher(MediaType.TEXT_HTML)
-                            )
+                                    .authenticationEntryPoint(new CustomAuthenticationEntryPoint())
+//                            .defaultAuthenticationEntryPointFor(
+//                                new LoginUrlAuthenticationEntryPoint("/oauth2/authorization/google"),
+//                                new MediaTypeRequestMatcher(MediaType.TEXT_HTML)
+//                            )
                     );
 
             return http.cors(Customizer.withDefaults()).build();
@@ -349,6 +225,117 @@ public class SecurityConfig {
             return source;
         }
 
+
+
+//        @Bean
+//    public GrantedAuthoritiesMapper userAuthoritiesMapper() {
+//        return (authorities) -> {
+//            Set<GrantedAuthority> mappedAuthorities = new HashSet<>();
+//
+//            authorities.forEach(authority -> {
+//                System.out.println(authority.getAuthority());
+//                mappedAuthorities.add(new SimpleGrantedAuthority(authority.getAuthority()));
+//                if (OidcUserAuthority.class.isInstance(authority)) {
+//                    OidcUserAuthority oidcUserAuthority = (OidcUserAuthority)authority;
+//
+//                    OidcIdToken idToken = oidcUserAuthority.getIdToken();
+//                    OidcUserInfo userInfo = oidcUserAuthority.getUserInfo();
+//                    System.out.println(userInfo.getClaims());
+//
+//                    // Map the claims found in idToken and/or userInfo
+//                    // to one or more GrantedAuthority's and add it to mappedAuthorities
+//
+//                } else if (OAuth2UserAuthority.class.isInstance(authority)) {
+//                    OAuth2UserAuthority oauth2UserAuthority = (OAuth2UserAuthority)authority;
+//
+//                    Map<String, Object> userAttributes = oauth2UserAuthority.getAttributes();
+//
+//                    // Map the attributes found in userAttributes
+//                    // to one or more GrantedAuthority's and add it to mappedAuthorities
+//
+//                }
+//
+//                //should we map authority and attributes from the token to the user here?
+//            });
+//
+//            return mappedAuthorities;
+//        };
+//    }
+
+//    @Bean
+//    public OAuth2TokenCustomizer<OAuth2TokenClaimsContext> OAuth2TokenCustomizer() {
+//        return context -> {
+//            OAuth2TokenClaimsSet.Builder claims = context.getClaims();
+//
+//            // Get existing scopes
+//            Set<String> existingScopes = context.getClaims().build().getClaim(OAuth2ParameterNames.SCOPE);
+//
+//            // Create new set with existing and custom scopes
+//            Set<String> customScopes = new HashSet<>(existingScopes);
+//            customScopes.add("custom.scope"); // Add your custom scope
+//
+//            // Set the updated scopes
+//            claims.claim(OAuth2ParameterNames.SCOPE, customScopes);
+//        };
+//    }
+
+
+
+    @Bean
+    public OAuth2TokenCustomizer<JwtEncodingContext> tokenCustomizer() {
+        return context -> {
+            Authentication principal = context.getPrincipal();
+
+            if(principal.getPrincipal() instanceof OidcUser){
+
+                OidcUser oidcUser = (OidcUser) principal.getPrincipal();
+
+                //transfer oidcAuthorities to scopes
+                Set<String> oidcAuthorities = oidcUser.getAuthorities().stream()
+                        .map(GrantedAuthority::getAuthority)
+                        .filter(scope -> scope.startsWith("SCOPE_"))
+                        .map(scope -> scope.substring(6))
+                        .collect(Collectors.toSet());
+                context.getClaims().claim("scope", oidcAuthorities);
+
+                System.out.println(oidcUser.getIdToken().getSubject());
+
+                //Get other oidc claims
+                List<String> otherOidcClaimsToCollect = Arrays.asList(
+                        "email",
+                        "name",
+                        "given_name",
+                        "family_name"
+                );
+                Map<String, Object> otherOidcClaims = otherOidcClaimsToCollect.stream()
+                        .filter(claim -> oidcUser.getClaims().containsKey(claim))
+                        .collect(Collectors.toMap(claim -> claim, claim -> oidcUser.getClaims().get(claim)));
+                context.getClaims().claims(claims -> claims.putAll(otherOidcClaims));
+
+            }
+
+            //Add client credential authorized scope to token claims
+            if(context.getAuthorizationGrantType() == AuthorizationGrantType.CLIENT_CREDENTIALS){
+                context.getClaims().claim("scope", context.getAuthorizedScopes());
+            }
+
+                // Add mapped scopes to the token
+
+
+            OAuth2AuthorizationGrantAuthenticationToken authorizationGrant =
+                    context.getAuthorizationGrant();
+
+            // Get request form parameters
+            Map<String, Object> additionalParameters = authorizationGrant.getAdditionalParameters().entrySet().stream()
+                    .filter(entry -> context.getClaims().build().getClaims().containsKey(entry.getKey())==false)
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+            context.getClaims().claims(claimsMap -> claimsMap.putAll(additionalParameters));
+
+        };
+    }
+
+
+
 //    @Bean
 //    public InMemoryUserDetailsManager userDetailsService() {
 //        UserDetails user = User.builder()
@@ -367,23 +354,53 @@ public class SecurityConfig {
 //
 //        return new InMemoryUserDetailsManager(user, admin);
 //    }
-
+//
+//    @Bean
+//    public ClientRegistrationRepository clientRegistrationRepository() {
+//            List<ClientRegistration> providers = new ArrayList<>();
+//            providers.add(this.googleClientRegistration());
+//        return new InMemoryClientRegistrationRepository(providers);
+//    }
+//
+//    private ClientRegistration googleClientRegistration() {
+//        return ClientRegistration.withRegistrationId("google")
+//                .clientId("google-client-id")
+//                .clientSecret("google-client-secret")
+//                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
+//                .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+//                .redirectUri("{baseUrl}/login/oauth2/code/{registrationId}")
+//                .scope("openid", "profile", "email", "address", "phone")
+//                .authorizationUri("https://accounts.google.com/o/oauth2/v2/auth")
+//                .tokenUri("https://www.googleapis.com/oauth2/v4/token")
+//                .userInfoUri("https://www.googleapis.com/oauth2/v3/userinfo")
+//                .userNameAttributeName(IdTokenClaimNames.SUB)
+//                .jwkSetUri("https://www.googleapis.com/oauth2/v3/certs")
+//                .clientName("Google")
+//                .build();
+//    }
 
     @Bean
     public RegisteredClientRepository registeredClientRepository() {
         List<RegisteredClient> registeredClients = new ArrayList<>();
         RegisteredClient frontendClient = RegisteredClient.withId(UUID.randomUUID().toString())
+                .clientName("Sample Client")
                 .clientId("public-client")
-                .clientSecret("{noop}secret")
+                .clientSecret(passwordEncoder().encode("secret"))
                 .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
                 .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
-//                .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
+                .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
                 .redirectUri("http://localhost:3000/callback")
+                .redirectUri("http://localhost:3000/callback?provider=google")
+                .redirectUri("http://localhost:3000/callback?provider=ciam")
+                .redirectUri("http://localhost:3000/callback?provider=auth0")
+                .tokenSettings(tokenSettings())
 //                .scope(OidcScopes.OPENID)
-                .scope("read")
-                .scope("write")
-                .scope("profile")
-                .scope("openid")
+//                .scope("read")
+//                .scope("email")
+//                .scope("profile")
+//                .scope("openid")
+//                .scope("https://api.thomsonreuters.com/auth/akkadia.akkadiax.auth.default")
+//                .scope("https://api.thomsonreuters.com/auth/akkadia.akkadiax.auth.admin")
 //                .clientSettings(ClientSettings.builder()
 //                        .requireProofKey(true)  // Enable PKCE
 //                        .requireAuthorizationConsent(true)
@@ -392,11 +409,14 @@ public class SecurityConfig {
 
         RegisteredClient backendClient = RegisteredClient.withId(UUID.randomUUID().toString())
                 .clientId("oauth2-credential-flow-client")
-                .clientSecret("{noop}flow-secret")
+//                .clientSecret("{noop}flow-secret")
+                .clientSecret(passwordEncoder().encode("flow-secret"))
                 .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
                 .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
-                .scope("read")
-                .scope("write")
+                .scope("https://api.thomsonreuters.com/auth/akkadia.akkadiax.auth.default")
+                .scope("https://api.thomsonreuters.com/auth/akkadia.akkadiax.auth.admin")
+                .scope("ROLE_SYSTEM_ADMIN")
+                .tokenSettings(tokenSettings())
                 .build();
 
         registeredClients.add(frontendClient);
@@ -405,8 +425,17 @@ public class SecurityConfig {
         return new InMemoryRegisteredClientRepository(registeredClients);
     }
 
-//    @Bean
-//    public PasswordEncoder passwordEncoder() {
-//        return new BCryptPasswordEncoder();
-//    }
+    @Bean
+    public TokenSettings tokenSettings() {
+        return TokenSettings.builder()
+                .accessTokenTimeToLive(Duration.ofHours(12))
+                .refreshTokenTimeToLive(Duration.ofDays(180))
+                .reuseRefreshTokens(false)
+                .build();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 }

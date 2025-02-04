@@ -36,6 +36,22 @@
           </set>
         </option>
       </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/oauth2-social-login-example/authorization-server" />
+        <option name="modules">
+          <set>
+            <option value="$PROJECT_DIR$/oauth2-social-login-example/authorization-server" />
+          </set>
+        </option>
+      </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/oauth2-social-login-example/client-application" />
+        <option name="modules">
+          <set>
+            <option value="$PROJECT_DIR$/oauth2-social-login-example/client-application" />
+          </set>
+        </option>
+      </GradleProjectSettings>
     </option>
   </component>
 </project>

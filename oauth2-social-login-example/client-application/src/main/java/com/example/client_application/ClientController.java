@@ -30,7 +30,7 @@ public class ClientController {
     }
 
     @GetMapping("/auth")
-    public void initiateAuth(HttpServletResponse response) throws IOException {
+    public void initiateAuth(HttpServletResponse response, @RequestParam(value = "idp") String idp) throws IOException {
 
         // Generate and store code verifier
         String codeVerifier = PKCEUtil.generateCodeVerifier();
@@ -41,21 +41,23 @@ public class ClientController {
 
         String authorizationUrl = UriComponentsBuilder
                 .fromUriString("http://localhost:8080/oauth2/authorize")
+                .queryParam("provider", idp)
                 .queryParam("response_type", "code")
                 .queryParam("client_id", "public-client")
-                .queryParam("redirect_uri", "http://localhost:3000/callback")
-                .queryParam("scope", "profile openid read write")
+                .queryParam("redirect_uri", "http://localhost:3000/callback?provider="+idp)
                 .queryParam("state", UUID.randomUUID().toString().replace("-", ""))
 //                .queryParam("code_challenge", codeChallenge)
 //                .queryParam("code_challenge_method", "S256")
                 .build()
                 .toUriString();
+
         response.sendRedirect(authorizationUrl);
     }
 
     @GetMapping("/callback")
     public ResponseEntity<String> callback(@RequestParam(value = "code", required = false) String authorizationCode, @RequestParam(value = "state", required = false) String state,
-                                                      @RequestParam(value = "error", required = false) String error,
+                                           @RequestParam(value = "provider", required = false) String provider,
+                                           @RequestParam(value = "error", required = false) String error,
                                                       @RequestParam(value = "error_description", required = false) String error_description){
 
 
@@ -68,7 +70,8 @@ public class ClientController {
             MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
             formData.add("grant_type", "authorization_code");
             formData.add("code", authorizationCode);
-            formData.add("redirect_uri", "http://localhost:3000/callback");
+            formData.add("redirect_uri", "http://localhost:3000/callback?provider="+provider);
+            formData.add("tenant-id", "test-tenant-uuid");
 //            body.add("state", state);
 
             try{
